@@ -46,21 +46,25 @@ example : (p ∧ q) ∧ r ↔ p ∧ (q ∧ r) := by
   
 example : (p ∨ q) ∨ r ↔ p ∨ (q ∨ r) := by
   apply Iff.intro
-  
   . intro inl 
     cases inl with
-    | inr hr => exact Or.inr (Or.inr hr)
+    | inr hr => exact Or.inr $ Or.inr hr
     | inl hpq => 
       cases hpq with
-      | inl hp => exact Or.inl (Or.inl hp)
-      | inr hq => 
+      | inl hp => exact Or.inl hp
+      | inr hq => exact Or.inr (Or.inl hq)
   . intro inr
-    sorry
+    cases inr with
+    | inl hp => exact Or.inl (Or.inl hp)
+    | inr hqr => 
+      cases hqr with
+      | inr hr => exact (Or.inr hr)
+      | inl hq => exact Or.inl (Or.inr hq)  
   
 
-example : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) :=
+example : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := 
   sorry
-  
+
 example : p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r) :=
   sorry
 
@@ -72,10 +76,37 @@ example : ((p ∨ q) → r) ↔ (p → r) ∧ (q → r) :=
 
 -- Demorganovi zakoni
 example : ¬(p ∨ q) ↔ ¬p ∧ ¬q :=
-  sorry
+  have ltr : ¬(p ∨ q) → ¬p ∧ ¬q :=
+    fun h : ¬(p ∨ q) =>
+      have hnp : ¬p := (fun hp : p => h (Or.inl hp))
+      have hnq : ¬q := (fun hq : q => h (Or.inr hq))
+      And.intro hnp hnq
+  have rtl : ¬p ∧ ¬q → ¬(p ∨ q) := 
+    fun h : ¬p ∧ ¬q => 
+      fun h₁ : p ∨ q => 
+        Or.elim h₁
+          (fun hp : p => h.left hp)
+          (fun hq : q => h.right hq)
+  Iff.intro ltr rtl 
 
-example : ¬p ∨ ¬q → ¬(p ∧ q) :=
-  sorry
+#check Classical.em
+
+example : ¬p ∨ ¬q ↔ ¬(p ∧ q) :=
+  have ltr : ¬(p ∧ q) → ¬p ∨ ¬q :=
+    fun h : ¬(p ∧ q) => 
+      Or.elim (Classical.em p) 
+      (fun hp : p => 
+        have hnq : ¬q := fun hq : q => h (And.intro hp hq)  
+        Or.inr hnq
+      )
+      (fun hnp : ¬p => Or.inl hnp)
+  have rtl : ¬p ∨ ¬q → ¬(p ∧ q) :=
+    fun h : ¬p ∨ ¬q => 
+      fun h₁ : p ∧ q => 
+        Or.elim h
+          (fun hnp : ¬p => hnp h₁.left)
+          (fun hnq : ¬q => hnq h₁.right)
+  Iff.intro rtl ltr
 
 -- Zakon neprotivrečnosti
 example : ¬(p ∧ ¬p) :=
